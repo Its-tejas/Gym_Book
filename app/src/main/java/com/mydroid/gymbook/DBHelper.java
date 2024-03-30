@@ -6,8 +6,14 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import androidx.annotation.NonNull;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.mydroid.gymbook.Adapter.RecyclerViewAdapter;
 import com.mydroid.gymbook.Model.AdapterModel;
 
 import java.util.ArrayList;
@@ -122,6 +128,28 @@ public class DBHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         db.close();
+
+        //  Code for retrieve data from firebase
+
+//        ArrayList<AdapterModel> list = new ArrayList<>();
+//        reference.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                for (DataSnapshot dataSnapshot : snapshot.getChildren())
+//                {
+//                    AdapterModel members = dataSnapshot.getValue(AdapterModel.class);
+//                    members.setFirebase_id(dataSnapshot.getKey());
+//                    list.add(members);
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//
+//            }
+//        });
+//        return list;
+
         return arrayGBook;
     }
 }
