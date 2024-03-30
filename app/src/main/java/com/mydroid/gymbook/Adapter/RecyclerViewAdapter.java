@@ -1,11 +1,13 @@
 package com.mydroid.gymbook.Adapter;
 
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.os.Build;
+import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,10 +23,9 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.mydroid.gymbook.DBHelper;
+import com.mydroid.gymbook.ImageHandler;
 import com.mydroid.gymbook.Model.AdapterModel;
-import com.mydroid.gymbook.Model.Users;
 import com.mydroid.gymbook.R;
-import com.squareup.picasso.Picasso;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -37,6 +38,9 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
     Context context;
     ArrayList<AdapterModel> arrayBook;
     DBHelper helper;
+    ImageView img;
+    TextView date;
+    String firebase_member_id = "";
 
     public RecyclerViewAdapter(Context context, ArrayList<AdapterModel> arrayBook) {
         this.context = context;
@@ -55,12 +59,21 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         helper = new DBHelper(context);
         AdapterModel model = arrayBook.get(position);
-        Picasso.get().load(model.pic).placeholder(R.drawable.baseline_person_24).into(holder.pic);
+
+        String path = model.pic_path;
+        Bitmap bitmap = ImageHandler.loadImageFromStorage(path);
+
+        if (bitmap != null) {
+            holder.pic.setImageBitmap(bitmap);
+        }
+
+//        Picasso.get().load(model.pic_path).placeholder(R.drawable.baseline_person_24).into(holder.pic);
         holder.name.setText(model.name);
         holder.phone.setText(model.phone);
         holder.amount.setText(model.amount);
         holder.date.setText(model.date);
-//        holder.cardForColor.setCardBackgroundColor(getR);
+        firebase_member_id = model.firebase_id;
+
         // Change background color of parent CardView dynamically
         String joiningDate = model.date.toString();
         if (hasCompletedOneMonth(joiningDate)) {
@@ -75,11 +88,19 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
                 Dialog dialog = new Dialog(context, R.style.CustomDialogTheme);
                 dialog.setContentView(R.layout.add_member_view);
 
+                img = dialog.findViewById(R.id.addPic);
                 EditText name = dialog.findViewById(R.id.addName);
                 EditText phone = dialog.findViewById(R.id.addPhone);
                 EditText amount = dialog.findViewById(R.id.addAmount);
-                EditText date = dialog.findViewById(R.id.addDate);
+                date = dialog.findViewById(R.id.addDate);
 
+                Bitmap bitmap = ImageHandler.loadImageFromStorage(model.pic_path);
+
+                if (bitmap != null ) {
+                    img.setImageBitmap(bitmap);
+                }else {
+                    img.setImageResource(R.drawable.baseline_person_24);
+                }
                 name.setText(model.name);
                 phone.setText(model.phone);
                 amount.setText(model.amount);
@@ -87,20 +108,22 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
 
                 Button addMember = dialog.findViewById(R.id.addMember);
                 addMember.setText("Update");
+
                 addMember.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         int member_id;
-                        String member_name, member_Phone, member_amount, member_date;
+                        String member_pic_path, member_name, member_Phone, member_amount, member_date;
                         member_id = model.id;
+                        member_pic_path = model.pic_path;
                         member_name = name.getText().toString();
                         member_Phone = phone.getText().toString();
                         member_amount = amount.getText().toString();
                         member_date = date.getText().toString();
                         if (!member_name.equals("") && !member_Phone.equals("") && !member_amount.equals("") && !member_date.equals("")) {
-                            int res = helper.updateMember(member_id, member_name, member_Phone, member_amount, member_date);
+                            int res = helper.updateMember(member_id, member_pic_path, member_name, member_Phone, member_amount, member_date, firebase_member_id);
                             if (res == 1) {
-                                Toast.makeText(context, "Member updated successfully", Toast.LENGTH_SHORT).show();
+//                                Toast.makeText(context, "Member updated successfully", Toast.LENGTH_SHORT).show();
                                 updateRecyclerViewData();
                                 dialog.dismiss();
                             }
@@ -109,6 +132,41 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
                         }
                     }
                 });
+
+                Button renewbtn = dialog.findViewById(R.id.renew);
+                renewbtn.setVisibility(View.VISIBLE);
+                renewbtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        date.setText(dategetter("dd/MM/YYYY"));
+                        Toast.makeText(context, "Date renewed", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                date.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showDatePickerDialog();
+                    }
+                });
+
+
+                if (hasCompletedOneMonth(date.getText().toString()))
+                {
+                    Button reminderbtn = dialog.findViewById(R.id.reminder);
+                    reminderbtn.setVisibility(View.VISIBLE);
+
+                    reminderbtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            String ph = phone.getText().toString();
+                            String REMINDER_SMS = "Hi "+name.getText().toString() + " , your GYM membership is expired."
+                                    + " If you want to continue your GYM membership then kindly pay the fees";
+
+                            sendSMS(ph, REMINDER_SMS);
+                        }
+                    });
+                }
                 dialog.show();
             }
         });
@@ -122,7 +180,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                helper.deleteMember(model.id);
+                                helper.deleteMember(model.id, model.firebase_id);
                                 updateRecyclerViewData();
                                 Toast.makeText(context, "Member removed Successfully", Toast.LENGTH_SHORT).show();
                             }
@@ -130,6 +188,23 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
                         .setNegativeButton("No", null)
                         .show();
                 return true;        // the event has been handled and should not be carried further.
+            }
+        });
+
+        holder.pic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Dialog dialog = new Dialog(context);
+                dialog.setContentView(R.layout.full_img_view);
+                ImageView fullImg = dialog.findViewById(R.id.fullImg);
+
+                Bitmap bitmap = ImageHandler.loadImageFromStorage(model.pic_path);
+                if (bitmap != null ) {
+                    fullImg.setImageBitmap(bitmap);
+                }else {
+                    fullImg.setImageResource(R.drawable.baseline_person_24);
+                }
+                dialog.show();
             }
         });
     }
@@ -171,9 +246,47 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
             LocalDate oneMonthAfterJoining = joinDate.plusMonths(1);
             return LocalDate.now().isAfter(oneMonthAfterJoining);
         } else {
-            // Fallback implementation using SimpleDateFormat and Calendar for older Android versions
-            // Add your implementation here
             return false; // Default fallback value
         }
     }
+
+    public String dategetter(String date)
+    {
+        // Get current date
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(date, Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        return currentDate;
+    }
+
+
+    private void sendSMS(String ph, String SMS) {
+        String phoneNumber = ph; // Replace with the recipient's phone number
+        String message = SMS; // Replace with your message
+
+        SmsManager smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        Toast.makeText(context, "Reminder SMS sent!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showDatePickerDialog() {
+        // Get current date
+        final Calendar c = Calendar.getInstance();
+        int year = c.get(Calendar.YEAR);
+        int month = c.get(Calendar.MONTH);
+        int day = c.get(Calendar.DAY_OF_MONTH);
+
+        // Create a new instance of DatePickerDialog and return the selected date
+        DatePickerDialog datePickerDialog = new DatePickerDialog(context,
+                (view, year1, monthOfYear, dayOfMonth) -> {
+                    // Update the EditText with the selected date
+                    String selectedDate = String.format("%02d/%02d/%04d", dayOfMonth, monthOfYear + 1, year1);
+                    date.setText(selectedDate);
+                }, year, month, day);
+
+        // Show the date picker dialog
+        datePickerDialog.show();
+    }
+
 }
+

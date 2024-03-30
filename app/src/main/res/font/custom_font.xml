@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+    <font
+        android:font="@font/love_days"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+
+        app:font="@font/love_days"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+
+    <font
+        android:font="@font/debrosee"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+
+        app:font="@font/debrosee"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+
+    <font
+        android:font="@font/the_point_regular"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+
+        app:font="@font/the_point_regular"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+
+    <font
+        android:font="@font/short_baby"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+
+        app:font="@font/short_baby"
+        app:fontStyle="normal"
+        app:fontWeight="700" />
+
+</font-family>

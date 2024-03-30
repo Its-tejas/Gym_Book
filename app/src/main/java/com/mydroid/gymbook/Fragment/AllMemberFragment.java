@@ -1,7 +1,7 @@
-package com.mydroid.gymbook.Fragments;
+package com.mydroid.gymbook.Fragment;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -12,17 +12,19 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.provider.MediaStore;
-import android.view.Gravity;
+import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mydroid.gymbook.Adapter.RecyclerViewAdapter;
 import com.mydroid.gymbook.DBHelper;
+import com.mydroid.gymbook.ImageHandler;
 import com.mydroid.gymbook.Model.AdapterModel;
 import com.mydroid.gymbook.R;
 import com.mydroid.gymbook.databinding.FragmentAllMemberBinding;
@@ -37,9 +39,9 @@ public class AllMemberFragment extends Fragment {
     ArrayList<AdapterModel> arrayBook;
     RecyclerViewAdapter adapter;
     int REQUEST_CAMERA = 101;
-    ImageView pic;
-    AdapterModel model;
-
+    ImageView img;
+    String path=null;
+    TextView date;
     FragmentAllMemberBinding binding;
     public AllMemberFragment() {
         // Required empty public constructor
@@ -53,7 +55,7 @@ public class AllMemberFragment extends Fragment {
         binding = FragmentAllMemberBinding.inflate(inflater, container, false);
         helper = new DBHelper(getContext());
         arrayBook = helper.getMember();
-        adapter = new RecyclerViewAdapter(getContext(),arrayBook);
+        adapter = new RecyclerViewAdapter(getContext(), arrayBook);
 
         binding.allRecyclerView.setAdapter(adapter);
         binding.allRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -64,36 +66,22 @@ public class AllMemberFragment extends Fragment {
                 Dialog dialog = new Dialog(getContext(), R.style.CustomDialogTheme);
                 dialog.setContentView(R.layout.add_member_view);
 
-                pic = dialog.findViewById(R.id.addPic);
+                img = dialog.findViewById(R.id.addPic);
                 EditText name = dialog.findViewById(R.id.addName);
                 EditText phone = dialog.findViewById(R.id.addPhone);
                 EditText amount = dialog.findViewById(R.id.addAmount);
-                EditText date = dialog.findViewById(R.id.addDate);
+                date = dialog.findViewById(R.id.addDate);
 
                 amount.setText("200");
                 date.setText(dategetter("dd/MM/YYYY"));
 
-                pic.setOnClickListener(new View.OnClickListener() {
+                img.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                        builder.setView(R.layout.image_option_view);
-
-                        AlertDialog dialog1 = builder.create();
-//                        dialog1.getWindow().setGravity(Gravity.BOTTOM);
-                        Button btnCamera = dialog1.findViewById(R.id.btnCamera);
-                        Button btnGallery = dialog1.findViewById(R.id.btnGallery);
-
-                        btnCamera.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                                if (takePicture.resolveActivity(getActivity().getPackageManager()) != null)
-                                {
-                                    startActivityForResult(takePicture, REQUEST_CAMERA);
-                                }
-                            }
-                        });
+                        Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        if (takePicture.resolveActivity(getActivity().getPackageManager()) != null) {
+                            startActivityForResult(takePicture, REQUEST_CAMERA);
+                        }
                     }
                 });
 
@@ -101,15 +89,19 @@ public class AllMemberFragment extends Fragment {
                 addMember.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        String member_name, member_Phone, member_amount, member_date;
+                        String member_pic_path, member_name, member_Phone, member_amount, member_date;
+                        member_pic_path = path;
                         member_name = name.getText().toString();
                         member_Phone = phone.getText().toString();
                         member_amount = amount.getText().toString();
                         member_date = date.getText().toString();
                         if (!member_name.equals("") && !member_Phone.equals("") && !member_amount.equals("") && !member_date.equals("")) {
-                            int res = helper.addMember(member_name, member_Phone, member_amount, member_date);
+                            int res = helper.addMember(member_pic_path, member_name, member_Phone, member_amount, member_date);
                             if (res == 1) {
-                                Toast.makeText(getContext(), "Member added successfully", Toast.LENGTH_SHORT).show();
+                                String WELCOME_SMS = "Hi "+member_name+" thanks for joining and welcome to our GYM , Today is " + member_date +
+                                        " and from now you can transform your body ! ";
+                                sendSMS(member_Phone,WELCOME_SMS);
+//                                Toast.makeText(getContext(), "Member added successfully", Toast.LENGTH_SHORT).show();
                                 updateRecyclerViewData();
                                 dialog.dismiss();
                             }
@@ -119,6 +111,13 @@ public class AllMemberFragment extends Fragment {
                         }
                     }
                 });
+                date.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showDatePickerDialog();
+                    }
+                });
+
                 dialog.show();
             }
         });
@@ -149,10 +148,43 @@ public class AllMemberFragment extends Fragment {
             if (requestCode == REQUEST_CAMERA && data != null) {
                 Bundle extras = data.getExtras();
                 Bitmap imgBitmap = (Bitmap) extras.get("data");
-                model.setPic(imgBitmap.toString());
-                pic.setImageBitmap(imgBitmap);
-                // store it into internal storage
+
+                path = ImageHandler.saveImageToInternalStorage(getContext(), imgBitmap);
+                // Load the Bitmap from the image path
+                Bitmap bitmap = ImageHandler.loadImageFromStorage(path);
+
+                // Set the fetched image Bitmap to the ImageView
+                if (bitmap != null) {
+                    img.setImageBitmap(bitmap);
+                }
             }
         }
     }
+    private void sendSMS(String ph, String SMS) {
+        String phoneNumber = ph; // Replace with the recipient's phone number
+        String message = SMS; // Replace with your message
+
+        SmsManager smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        Toast.makeText(getContext(), "Welcome SMS sent!", Toast.LENGTH_SHORT).show();
+    }
+    private void showDatePickerDialog() {
+        // Get current date
+        final Calendar c = Calendar.getInstance();
+        int year = c.get(Calendar.YEAR);
+        int month = c.get(Calendar.MONTH);
+        int day = c.get(Calendar.DAY_OF_MONTH);
+
+        // Create a new instance of DatePickerDialog and return the selected date
+        DatePickerDialog datePickerDialog = new DatePickerDialog(getContext(),
+                (view, year1, monthOfYear, dayOfMonth) -> {
+                    // Update the EditText with the selected date
+                    String selectedDate = String.format("%02d/%02d/%04d", dayOfMonth, monthOfYear + 1, year1);
+                    date.setText(selectedDate);
+                }, year, month, day);
+
+        // Show the date picker dialog
+        datePickerDialog.show();
+    }
+
 }
