@@ -98,8 +98,9 @@ public class AllMemberFragment extends Fragment {
                         if (!member_name.equals("") && !member_Phone.equals("") && !member_amount.equals("") && !member_date.equals("")) {
                             int res = helper.addMember(member_pic_path, member_name, member_Phone, member_amount, member_date);
                             if (res == 1) {
-                                String WELCOME_SMS = "Hi "+member_name+" thanks for joining and welcome to our GYM , Today is " + member_date +
-                                        " and from now you can transform your body ! ";
+                                String WELCOME_SMS = "Welcome "+member_name+" to our gym ! \n We're excited to have you join us on  "
+                                        + member_date +". Let's crush your fitness goals ! ";
+
                                 sendSMS(member_Phone,WELCOME_SMS);
 //                                Toast.makeText(getContext(), "Member added successfully", Toast.LENGTH_SHORT).show();
                                 updateRecyclerViewData();
@@ -168,6 +169,7 @@ public class AllMemberFragment extends Fragment {
         smsManager.sendTextMessage(phoneNumber, null, message, null, null);
         Toast.makeText(getContext(), "Welcome SMS sent!", Toast.LENGTH_SHORT).show();
     }
+
     private void showDatePickerDialog() {
         // Get current date
         final Calendar c = Calendar.getInstance();

@@ -5,9 +5,12 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -15,6 +18,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.mydroid.gymbook.Adapter.RecyclerViewAdapter;
 import com.mydroid.gymbook.Model.AdapterModel;
+import com.mydroid.gymbook.Model.FirebaseModel;
+import com.mydroid.gymbook.Model.Users;
 
 import java.util.ArrayList;
 
@@ -30,13 +35,27 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String KEY_DATE = "date";
     private static final String FIREBASE_MEMBER_ID = "member_id";
 
-    FirebaseDatabase database;
     DatabaseReference reference;
+    FirebaseUser user;
+
+
     public DBHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
 
-        database = FirebaseDatabase.getInstance();
-        reference = database.getReference("gym_members");
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String userId = user.getUid();
+
+            // Create a reference to the location where you want to store the data
+             reference = FirebaseDatabase.getInstance().getReference()
+                    .child("Users")
+                    .child(userId)
+                    .child("members");
+            Log.d("tag","user access success");
+
+        }else {
+            Log.d("tag","user access failed");
+        }
     }
 
     @Override
@@ -56,7 +75,7 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
 
-        AdapterModel member = new AdapterModel( pic_path,  name,  phone,  amount,  date);
+        FirebaseModel member = new FirebaseModel( pic_path,  name,  phone,  amount,  date);
         DatabaseReference newMemberRef = reference.push();
         newMemberRef.setValue(member);
         String memberId = newMemberRef.getKey(); // Store the generated key
@@ -80,7 +99,7 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
 
-        AdapterModel member = new AdapterModel(pic_path, name, phone, amount, date);
+        FirebaseModel member = new FirebaseModel(pic_path, name, phone, amount, date);
         reference.child(firebase_id).setValue(member);
 
         cv.put(KEY_PIC_PATH,pic_path);

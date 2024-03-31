@@ -27,11 +27,13 @@ import com.mydroid.gymbook.ImageHandler;
 import com.mydroid.gymbook.Model.AdapterModel;
 import com.mydroid.gymbook.R;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapter.ViewHolder> {
@@ -160,8 +162,9 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
                         @Override
                         public void onClick(View v) {
                             String ph = phone.getText().toString();
-                            String REMINDER_SMS = "Hi "+name.getText().toString() + " , your GYM membership is expired."
-                                    + " If you want to continue your GYM membership then kindly pay the fees";
+                            String date_extended = date_extender(date.getText().toString());
+                            String REMINDER_SMS = "Dear "+name.getText().toString() + " , your GYM membership has expired on " + date_extended
+                                    + ". If you want to continue your GYM membership then please renew it";
 
                             sendSMS(ph, REMINDER_SMS);
                         }
@@ -288,5 +291,28 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter <RecyclerViewAdapt
         datePickerDialog.show();
     }
 
+    private String date_extender(String original_date) {
+        try {
+            // Parse the given date string
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            Date date = sdf.parse(original_date);
+
+            // Create a Calendar instance and set the parsed date
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(date);
+
+            // Increase the date by 1 month
+            calendar.add(Calendar.MONTH, 1);
+
+            // Format the new date and print it
+            Date newDate = calendar.getTime();
+            String newDateString = sdf.format(newDate);
+            return newDateString;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
 
