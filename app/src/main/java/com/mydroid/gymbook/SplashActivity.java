@@ -32,7 +32,7 @@ public class SplashActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             }
-        }, 2000);
+        }, 1500);
 
 // Hide the navigation bar and the status bar
         View decorView = getWindow().getDecorView();

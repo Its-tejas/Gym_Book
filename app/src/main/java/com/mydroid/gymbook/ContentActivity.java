@@ -35,18 +35,17 @@ public class ContentActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS},
                         PERMISSION_REQUEST_SEND_SMS);
             } else {
-                // Permission already granted, proceed with sending SMS or perform other tasks
+                // Permission already granted
             }
         } else {
             // Runtime permission not required on devices running older Android versions
         }
 
+
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction ft = fm.beginTransaction();
         ft.add(R.id.container,new AllMemberFragment());
         ft.commit();
-
-//        onBackPressed();
 
     }
 
@@ -58,7 +57,8 @@ public class ContentActivity extends AppCompatActivity {
                 Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show();
 
             } else {
-                Toast.makeText(this, "Permissions denied", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please give permissions to use the app", Toast.LENGTH_SHORT).show();
+                onBackPressed();
             }
         }
     }
